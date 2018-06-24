@@ -22,6 +22,7 @@ func check(e error) {
 type ControlAccel struct {
   Button int
   Factor float32
+  Type string
 }
 
 type Mouse struct {
@@ -68,6 +69,18 @@ func intToString(n int) string {
   return fmt.Sprintf("%d", n)
 }
 
+func testMouseExists(name string) bool {
+  out, err := exec.Command("bash", "-c", "xinput list | grep " + name).Output()
+
+  if string(out) == "" {
+    return false
+  } else if err != nil {
+    fmt.Printf("error: %v\n", err)
+  }
+
+  return true
+}
+
 func main() {
   configFileName := "config.yaml"
   if len(os.Args) == 2 {
@@ -81,15 +94,21 @@ func main() {
 	var config Config
   yamlErr := yaml.Unmarshal([]byte(raw), &config) ; check(yamlErr)
 
-  //fmt.Printf("%v+\n", config)
+ // fmt.Printf("%v+\n", config)
 
   for _, mouse := range config.Mice {
     name := mouse.Name
+
+    if !testMouseExists(name) {
+      break
+    }
+
     decel := mouse.Decel
     linear := mouse.Linear
     buttonMap := mouse.ButtonMap
     controlAccel := mouse.ControlAccel
     id := mouseNameToID(name)
+
 
     setProp(id, CONSTANT_DECELERATION, floatToString(decel))
 
@@ -105,15 +124,22 @@ func main() {
     }
 
     if controlAccel.Button != 0 {
-      fmt.Println("launching control script")
-      launchMouseControl := fmt.Sprintf("bash %s/dotfiles/scripts/mousecontrol.sh '%s' %s %s", 
-        os.Getenv("HOME"), name, intToString(controlAccel.Button), floatToString(controlAccel.Factor))
 
-      execCmdAsync(launchMouseControl)
+      if controlAccel.Type == "primary" {
+
+        launchMouseControl := fmt.Sprintf("bash %s/dotfiles/scripts/primarybuttonmousecontrol.sh '%s' %s %s", 
+          os.Getenv("HOME"), name, intToString(controlAccel.Button), floatToString(controlAccel.Factor))
+
+        execCmdAsync(launchMouseControl)
+
+      } else if controlAccel.Type == "secondary" || controlAccel.Type == "" {
+        launchMouseControl := fmt.Sprintf("bash %s/dotfiles/scripts/mousecontrol.sh '%s' %s %s", 
+          os.Getenv("HOME"), name, intToString(controlAccel.Button), floatToString(controlAccel.Factor))
+
+        execCmdAsync(launchMouseControl)
+
+      }
     }
-
-
-
 
   }
 
