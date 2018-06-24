@@ -31,6 +31,7 @@ type Mouse struct {
   Linear bool
   ButtonMap string
   ControlAccel ControlAccel
+  StabilizeClick ControlAccel
 }
 
 type Config struct {
@@ -107,6 +108,7 @@ func main() {
     linear := mouse.Linear
     buttonMap := mouse.ButtonMap
     controlAccel := mouse.ControlAccel
+    stabilizeClick := mouse.StabilizeClick
     id := mouseNameToID(name)
 
 
@@ -139,6 +141,15 @@ func main() {
         execCmdAsync(launchMouseControl)
 
       }
+    }
+
+    if stabilizeClick.Button != 0 {
+
+      launchMouseControl := fmt.Sprintf("bash %s/dotfiles/scripts/stabilizeclick.sh '%s' %s %s", 
+        os.Getenv("HOME"), name, intToString(stabilizeClick.Button), floatToString(stabilizeClick.Factor))
+
+      execCmdAsync(launchMouseControl)
+
     }
 
   }
