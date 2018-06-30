@@ -101,7 +101,7 @@ func main() {
     name := mouse.Name
 
     if !testMouseExists(name) {
-      break
+      continue
     }
 
     decel := mouse.Decel
