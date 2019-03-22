@@ -1,17 +1,23 @@
 mice:
-    - name: "Contour"
-      accel: -0.9
-     #stabilizeClick:
-     #  button: 1
-     #  factor: 2
+   #- name: "Contour"
+   #  accel: -0.9
+   # #stabilizeClick:
+   # #  button: 1
+   # #  factor: 2
 
-    - name: "Evoluent"
-      accel: -0.8
+   #- name: "Evoluent"
+   #  accel: -0.8
 
-    - name: "Penclic"
-      accel: -0.7
-      buttonMap: 1 2 3 4 5
-      accelProfile: 0 1
+   #- name: "Penclic"
+   #  accel: -0.7
+   #  buttonMap: 1 2 3 4 5
+   #  accelProfile: 0 1
+
+    - name: "Magic Trackpad 2"
+      accel: -0.5
+      customProps:
+          - name: "libinput Tapping Enabled"
+            value: "1"
 
    #- name: "Kingsis Peripherals Evoluent VerticalMouse 4"
    #  decel: 3.5

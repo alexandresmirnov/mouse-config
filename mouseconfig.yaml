@@ -1,0 +1,25 @@
+mice:
+    # Rollermouse
+    - name: "Contour"
+      accel: -0.9
+
+    # Vertical mouse
+    - name: "Evoluent"
+      accel: -1
+
+    # Gaming mouse
+    - name: "Logitech"
+      accel: -0.7
+
+    # Penclic
+    - name: "Penclic"
+      accel: -0.7
+      buttonMap: 1 2 3 4 5
+      accelProfile: 0 1
+
+    # Magic Trackpad 2
+    - name: "Magic Trackpad 2"
+      accel: -0.5
+      customProps:
+          - name: "libinput Tapping Enabled"
+            value: "1"

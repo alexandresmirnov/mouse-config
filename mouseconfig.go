@@ -9,11 +9,8 @@ import (
 	"github.com/ghodss/yaml"
 )
 
-const CONSTANT_DECELERATION = "'Device Accel Constant Deceleration'"
-const PROFILE = "'Device Accel Profile'"
-
-const LIBINPUT_ACCEL_SPEED = "'libinput Accel Speed'"
-const LIBINPUT_ACCEL_PROFILE_ENABLED = "'libinput Accel Profile Enabled'"
+const libinputAccelSpeed = "libinput Accel Speed"
+const libinputAccelProfileEnabled = "libinput Accel Profile Enabled"
 
 func check(e error) {
 	if e != nil {
@@ -22,28 +19,37 @@ func check(e error) {
 	}
 }
 
-type ControlAccel struct {
+type config struct {
+	Mice []mouse
+}
+
+type mouse struct {
+	Name           string
+	Accel          float32
+	AccelProfile   string
+	ButtonMap      string
+	ControlAccel   controlAccel
+	StabilizeClick controlAccel
+	CustomProps    []customProp
+}
+
+type controlAccel struct {
 	Button int
 	Factor float32
 	Type   string
 }
 
-type Mouse struct {
-	Name           string
-	Accel          float32
-	AccelProfile   string
-	ButtonMap      string
-	ControlAccel   ControlAccel
-	StabilizeClick ControlAccel
-}
-
-type Config struct {
-	Mice []Mouse
+type customProp struct {
+	Name  string
+	Value string
 }
 
 func execCmd(cmd string) string {
 	out, err := exec.Command("bash", "-c", cmd).Output()
-	check(err)
+
+	if err != nil {
+		fmt.Printf("FAILURE in \"%s\": %s\n", cmd, err)
+	}
 
 	return string(out)
 }
@@ -54,7 +60,7 @@ func execCmdAsync(cmd string) {
 }
 
 func setProp(id, prop, value string) {
-	cmd := fmt.Sprintf("xinput set-prop %s %s %s", id, prop, value)
+	cmd := fmt.Sprintf("xinput set-prop %s '%s' %s", id, prop, value)
 	fmt.Println(cmd)
 	execCmd(cmd)
 }
@@ -76,7 +82,7 @@ func intToString(n int) string {
 }
 
 func testMouseExists(name string) bool {
-	out, err := exec.Command("bash", "-c", "xinput list | grep "+name).Output()
+	out, err := exec.Command("bash", "-c", "xinput list | grep "+"\""+name+"\"").Output()
 
 	if string(out) == "" {
 		return false
@@ -98,11 +104,9 @@ func main() {
 	raw, err := ioutil.ReadFile(configFileName)
 	check(err)
 
-	var config Config
+	var config config
 	yamlErr := yaml.Unmarshal([]byte(raw), &config)
 	check(yamlErr)
-
-	// fmt.Printf("%v+\n", config)
 
 	for _, mouse := range config.Mice {
 		name := mouse.Name
@@ -111,28 +115,39 @@ func main() {
 			continue
 		}
 
+		fmt.Printf("\n%s:\n", name)
+
+		// obtain device ID
+		id := mouseNameToID(name)
+
+		// easier reference to props
 		accel := mouse.Accel
 		accelProfile := mouse.AccelProfile
 		buttonMap := mouse.ButtonMap
 		controlAccel := mouse.ControlAccel
 		stabilizeClick := mouse.StabilizeClick
-		id := mouseNameToID(name)
+		customProps := mouse.CustomProps
 
-		setProp(id, LIBINPUT_ACCEL_SPEED, floatToString(accel))
+		// set accel
+		setProp(id, libinputAccelSpeed, floatToString(accel))
 
+		// set accelProfile
 		if accelProfile != "" {
 			if accelProfile == "linear" {
-				setProp(id, LIBINPUT_ACCEL_PROFILE_ENABLED, "0 0")
+				setProp(id, libinputAccelProfileEnabled, "0 0")
 			} else {
-				setProp(id, LIBINPUT_ACCEL_PROFILE_ENABLED, accelProfile)
+				setProp(id, libinputAccelProfileEnabled, accelProfile)
 			}
 		}
 
+		// set buttonMap
 		if len(buttonMap) > 0 {
 			setButtonMapCmd := fmt.Sprintf("xinput -set-button-map %s %s", id, buttonMap)
+			fmt.Println(setButtonMapCmd)
 			execCmd(setButtonMapCmd)
 		}
 
+		// set up control accel script
 		if controlAccel.Button != 0 {
 
 			if controlAccel.Type == "primary" {
@@ -151,12 +166,27 @@ func main() {
 			}
 		}
 
+		// set up stabilize click script
 		if stabilizeClick.Button != 0 {
 
 			launchMouseControl := fmt.Sprintf("bash %s/dotfiles/scripts/stabilizeclick.sh '%s' %s %s",
 				os.Getenv("HOME"), name, intToString(stabilizeClick.Button), floatToString(stabilizeClick.Factor))
 
 			execCmdAsync(launchMouseControl)
+
+		}
+
+		// check presence of customProps
+		if len(customProps) > 0 {
+
+			for _, prop := range customProps {
+
+				name := prop.Name
+				value := prop.Value
+
+				setProp(id, name, value)
+
+			}
 
 		}
 
